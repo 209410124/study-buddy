@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import type { ChatRequest, ChatResponse, ChatStep } from "@/lib/types";
+import type { ChatRequest, ChatResponse, ChatStep, PassageLanguage } from "@/lib/types";
 
 const validSteps: ChatStep[] = ["mainIdea", "evidence", "reasoning", "completed"];
+const validPassageLanguages: PassageLanguage[] = ["en", "zh"];
 
 const nextStepByCurrentStep: Record<ChatStep, ChatStep> = {
   mainIdea: "evidence",
@@ -41,6 +42,13 @@ function isChatStep(value: unknown): value is ChatStep {
   return typeof value === "string" && validSteps.includes(value as ChatStep);
 }
 
+function isPassageLanguage(value: unknown): value is PassageLanguage {
+  return (
+    typeof value === "string" &&
+    validPassageLanguages.includes(value as PassageLanguage)
+  );
+}
+
 function extractReply(data: OpenAIResponseBody) {
   // Responses API may return text as output_text or inside output content.
   const directText = data.output_text?.trim();
@@ -73,6 +81,9 @@ export async function POST(request: Request) {
   const passage = body.passage?.trim();
   const studentName = body.studentName?.trim() || "Student";
   const step = body.step;
+  const passageLanguage = isPassageLanguage(body.passageLanguage)
+    ? body.passageLanguage
+    : "en";
 
   if (!message || !passage || !isChatStep(step)) {
     return NextResponse.json(
@@ -93,8 +104,13 @@ export async function POST(request: Request) {
     "Ask one question at a time.",
     "Do not give the full answer directly.",
     "Guide the student to think.",
-    "Use plain ASCII punctuation and no emoji.",
+    passageLanguage === "zh"
+      ? "Use Traditional Chinese punctuation and no emoji."
+      : "Use plain ASCII punctuation and no emoji.",
     "Keep the response short, about 1 to 3 sentences.",
+    passageLanguage === "zh"
+      ? "The passage is written in Traditional Chinese. Reply in Traditional Chinese."
+      : "The passage is written in English. Reply in simple English.",
   ].join("\n");
 
   const input = [

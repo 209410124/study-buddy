@@ -5,6 +5,8 @@ export type ChatMessage = {
 
 export type ChatStep = "mainIdea" | "evidence" | "reasoning" | "completed";
 
+export type PassageLanguage = "en" | "zh";
+
 export type StudySession = {
   id: string;
   title: string;
@@ -39,6 +41,7 @@ export type ChatRequest = {
   step: ChatStep;
   passage: string;
   studentName: string;
+  passageLanguage: PassageLanguage;
 };
 
 export type ChatResponse = {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { PassageLanguage } from "@/lib/types";
 
 type OpenAIResponseContent = {
   text?: string;
@@ -58,8 +59,17 @@ const readingAngles = [
   "describe how Taiwanese people responded in different ways",
 ];
 
+const validPassageLanguages: PassageLanguage[] = ["en", "zh"];
+
 function pickRandom(items: string[]) {
   return items[Math.floor(Math.random() * items.length)];
+}
+
+function isPassageLanguage(value: unknown): value is PassageLanguage {
+  return (
+    typeof value === "string" &&
+    validPassageLanguages.includes(value as PassageLanguage)
+  );
 }
 
 function extractText(data: OpenAIResponseBody) {
@@ -79,7 +89,7 @@ function extractText(data: OpenAIResponseBody) {
   );
 }
 
-export async function POST() {
+export async function POST(request: Request) {
   const apiKey = process.env.OPENAI_API_KEY;
 
   if (!apiKey) {
@@ -89,15 +99,34 @@ export async function POST() {
     );
   }
 
+  const body = (await request.json().catch(() => ({}))) as {
+    passageLanguage?: unknown;
+  };
+  const passageLanguage = isPassageLanguage(body.passageLanguage)
+    ? body.passageLanguage
+    : "en";
+
+  const languageInstruction =
+    passageLanguage === "zh"
+      ? "Write 250 to 400 Traditional Chinese characters."
+      : "Write 150 to 250 English words.";
+
+  const punctuationInstruction =
+    passageLanguage === "zh"
+      ? "Use Traditional Chinese punctuation."
+      : "Use plain ASCII punctuation.";
+
   const instructions = [
-    "You generate short English reading passages for junior high school students.",
+    "You generate short reading passages for junior high school students.",
     "The topic must ONLY be Taiwan during the Japanese colonial period from 1895 to 1945.",
     "Allowed topics include Japanese rule in Taiwan, education, infrastructure, modernization, public health, sugar industry, economy, colonial policies, Kominka movement, Taiwanese society, resistance movements, and local Taiwan history examples.",
     "Do NOT write about modern Taiwan after 1945, Qing dynasty Taiwan, general Japanese history unrelated to Taiwan, or unrelated world history.",
-    "Write 150 to 250 English words.",
-    "Use clear, factual, not-too-difficult English.",
+    languageInstruction,
+    passageLanguage === "zh"
+      ? "Use clear, factual, not-too-difficult Traditional Chinese."
+      : "Use clear, factual, not-too-difficult English.",
     "Do not include a title, questions, bullet points, markdown, emoji, or citations.",
-    "Use plain ASCII punctuation.",
+    punctuationInstruction,
   ].join("\n");
 
   // These random choices make each generated passage feel different while staying in scope.
@@ -122,6 +151,9 @@ export async function POST() {
         instructions,
         input: [
           "Create one classroom reading passage about Taiwan under Japanese rule between 1895 and 1945.",
+          passageLanguage === "zh"
+            ? "The passage must be written in Traditional Chinese."
+            : "The passage must be written in English.",
           `Random subtopic: ${randomSubtopic}.`,
           `Local example: ${randomLocalExample}.`,
           `Time frame: ${randomTimeFrame}.`,
