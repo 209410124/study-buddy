@@ -3,7 +3,7 @@ export type ChatMessage = {
   content: string;
 };
 
-export type ChatStep = "mainIdea" | "evidence" | "reasoning" | "completed";
+export type ChatStep = "mainIdea" | "evidence" | "reasoning" | "reflection" | "completed";
 
 export type PassageLanguage = "en" | "zh";
 
@@ -42,6 +42,7 @@ export type ChatRequest = {
   passage: string;
   studentName: string;
   passageLanguage: PassageLanguage;
+  history?: ChatMessage[];
 };
 
 export type ChatResponse = {

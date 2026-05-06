@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { StudyBuddyAvatar } from "@/components/study-buddy-avatar";
 
 const navItems = [
   { href: "/", label: "Home" },
@@ -10,8 +11,9 @@ export function AppHeader() {
   return (
     <header className="border-b border-sky-100 bg-white/95">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-4 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
-        <Link href="/" className="text-xl font-semibold text-slate-950">
-          AI Study Buddy
+        <Link href="/" className="flex items-center gap-3 text-xl font-semibold text-slate-950">
+          <StudyBuddyAvatar size={42} />
+          <span>Hank</span>
         </Link>
         <nav className="flex gap-2" aria-label="Primary navigation">
           {navItems.map((item) => (

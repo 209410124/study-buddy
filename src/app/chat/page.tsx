@@ -10,10 +10,10 @@ export default function ChatPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.16em] text-sky-700">
             Practice room
           </p>
-          <h1 className="mt-3 text-4xl font-bold">Chat with your reading coach</h1>
+          <h1 className="mt-3 text-4xl font-bold">Chat with Hank</h1>
           <p className="mt-3 max-w-2xl text-slate-600">
-            Generate or paste a passage about Taiwan under Japanese rule, then answer the
-            coach&apos;s questions one step at a time.
+            Generate or paste a passage about Taiwan under Japanese rule, then answer Hank&apos;s
+            questions one step at a time.
           </p>
         </div>
         <ChatPanel />
