@@ -1,7 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { StudyBuddyAvatar } from "@/components/study-buddy-avatar";
+import type { HistoryEvent } from "@/data/history-events";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { taiwanReadingPassageOptions } from "@/lib/taiwan-history-knowledge";
 import type {
@@ -53,7 +54,6 @@ const uiText: Record<
     passagePlaceholder: string;
     generatePassage: string;
     generating: string;
-    restart: string;
     chatTitle: string;
     stepPractice: string;
     currentStep: string;
@@ -75,7 +75,6 @@ const uiText: Record<
     passagePlaceholder: "Paste a short reading passage",
     generatePassage: "Generate History Passage",
     generating: "Generating...",
-    restart: "Restart practice",
     chatTitle: "Chat with Hank",
     stepPractice: "Five short reading checks using only the passage.",
     currentStep: "Current step",
@@ -96,7 +95,6 @@ const uiText: Record<
     passagePlaceholder: "\u8cbc\u4e0a\u4e00\u7bc7\u77ed\u77ed\u7684\u95b1\u8b80\u6587\u7ae0",
     generatePassage: "\u7522\u751f\u6b77\u53f2\u6587\u7ae0",
     generating: "\u7522\u751f\u4e2d...",
-    restart: "\u91cd\u65b0\u958b\u59cb\u7df4\u7fd2",
     chatTitle: "\u548c Hank \u804a\u5929",
     stepPractice: "\u4e94\u500b\u77ed\u7bc7\u95b1\u8b80\u6aa2\u67e5\uff0c\u53ea\u4f7f\u7528\u6587\u7ae0\u5167\u5bb9\u3002",
     currentStep: "\u76ee\u524d\u6b65\u9a5f",
@@ -156,13 +154,20 @@ function pickRandom(items: string[]) {
 
 type ChatPanelProps = {
   studentProfile: StudentProfile;
+  passageLanguage: PassageLanguage;
+  selectedEvent: HistoryEvent;
 };
 
-export function ChatPanel({ studentProfile }: ChatPanelProps) {
+export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: ChatPanelProps) {
   const studentName = studentProfile.display_name;
-  const [passageLanguage, setPassageLanguage] = useState<PassageLanguage>("en");
-  const [selectedPassageId, setSelectedPassageId] = useState(taiwanReadingPassageOptions[0].id);
-  const [passage, setPassage] = useState(defaultPassages.en);
+  const previousLanguageRef = useRef(passageLanguage);
+  const initialPassageOption =
+    taiwanReadingPassageOptions.find((option) => option.id === selectedEvent.id) ??
+    taiwanReadingPassageOptions[0];
+  const selectedPassageId = initialPassageOption.id;
+  const [passage, setPassage] = useState(
+    passageLanguage === "zh" ? initialPassageOption.passageZh : initialPassageOption.passageEn,
+  );
   const [learningSessionId, setLearningSessionId] = useState<string | null>(null);
   const [answer, setAnswer] = useState("");
   const [step, setStep] = useState<ChatStep>("mainIdea");
@@ -175,7 +180,7 @@ export function ChatPanel({ studentProfile }: ChatPanelProps) {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       role: "assistant",
-      content: starterPrompts.en,
+      content: starterPrompts[passageLanguage],
     },
   ]);
   const text = uiText[passageLanguage];
@@ -186,7 +191,7 @@ export function ChatPanel({ studentProfile }: ChatPanelProps) {
     );
 
     if (!selectedPassage) {
-      return passageLanguage === "zh" ? "台灣歷史閱讀練習" : "Taiwan History Reading Practice";
+      return selectedEvent.title;
     }
 
     return passageLanguage === "zh" ? selectedPassage.titleZh : selectedPassage.titleEn;
@@ -200,7 +205,7 @@ export function ChatPanel({ studentProfile }: ChatPanelProps) {
     const supabase = getSupabaseBrowserClient();
     const summary =
       passageLanguage === "zh"
-        ? `完成 ${finalHistoryAnswerCount} 個閱讀檢查。`
+        ? `完成 ${finalHistoryAnswerCount} 題閱讀檢查。`
         : `Completed ${finalHistoryAnswerCount} reading checks.`;
 
     // The full conversation is stored on learning_sessions, so History can show one complete record.
@@ -221,7 +226,7 @@ export function ChatPanel({ studentProfile }: ChatPanelProps) {
     if (error) {
       setErrorMessage(
         passageLanguage === "zh"
-          ? "對話完成了，但還沒存進資料庫。請先在 Supabase 執行最新的 database/schema.sql。"
+          ? "練習已完成，但沒有成功儲存到資料庫。請確認 Supabase 已套用最新的 database/schema.sql。"
           : "Practice is complete, but it was not saved to the database. Please run the latest database/schema.sql in Supabase.",
       );
       return;
@@ -243,7 +248,7 @@ export function ChatPanel({ studentProfile }: ChatPanelProps) {
       .insert({
         student_id: studentProfile.id,
         title: getSelectedPassageTitle(),
-        topic: "Taiwan history during the Japanese colonial period",
+        topic: selectedEvent.title,
         passage,
         passage_language: passageLanguage,
         reading_check_count: 0,
@@ -303,6 +308,8 @@ export function ChatPanel({ studentProfile }: ChatPanelProps) {
           passageLanguage,
           learningSessionId: currentLearningSessionId,
           historyAnswerCount,
+          selectedTopic: selectedEvent.title,
+          currentRole: selectedEvent.role,
           history: messages.slice(-8),
         }),
       });
@@ -353,17 +360,6 @@ export function ChatPanel({ studentProfile }: ChatPanelProps) {
     }
   }
 
-  function restartPractice() {
-    setStep("mainIdea");
-    setHistoryAnswerCount(0);
-    setMaxHistoryAnswers(5);
-    setLearningSessionId(null);
-    setIsSavedToHistory(false);
-    setAnswer("");
-    setErrorMessage("");
-    setMessages([{ role: "assistant", content: starterPrompts[passageLanguage] }]);
-  }
-
   function resetPracticeState(nextLanguage: PassageLanguage) {
     setStep("mainIdea");
     setHistoryAnswerCount(0);
@@ -376,7 +372,7 @@ export function ChatPanel({ studentProfile }: ChatPanelProps) {
     setMessages([{ role: "assistant", content: starterPrompts[nextLanguage] }]);
   }
 
-  async function generatePassageForOption(passageOptionId: string, language: PassageLanguage) {
+  const generatePassageForOption = useCallback(async (passageOptionId: string, language: PassageLanguage) => {
     setIsGeneratingPassage(true);
     setErrorMessage("");
 
@@ -415,93 +411,41 @@ export function ChatPanel({ studentProfile }: ChatPanelProps) {
     } finally {
       setIsGeneratingPassage(false);
     }
-  }
+  }, [text.passageTimeoutError]);
 
-  function handleLanguageChange(nextLanguage: PassageLanguage) {
+  useEffect(() => {
+    if (previousLanguageRef.current === passageLanguage) {
+      return;
+    }
+
+    previousLanguageRef.current = passageLanguage;
+
     const selectedPassage = taiwanReadingPassageOptions.find(
       (option) => option.id === selectedPassageId,
     );
 
-    setPassageLanguage(nextLanguage);
     setPassage(
       selectedPassage
-        ? nextLanguage === "zh"
+        ? passageLanguage === "zh"
           ? selectedPassage.passageZh
           : selectedPassage.passageEn
-        : defaultPassages[nextLanguage],
+        : defaultPassages[passageLanguage],
     );
-    resetPracticeState(nextLanguage);
-    void generatePassageForOption(selectedPassageId, nextLanguage);
-  }
-
-  function handlePassageSelection(nextPassageId: string) {
-    const selectedPassage = taiwanReadingPassageOptions.find(
-      (option) => option.id === nextPassageId,
-    );
-
-    if (!selectedPassage) {
-      return;
-    }
-
-    setSelectedPassageId(nextPassageId);
-    setPassage(passageLanguage === "zh" ? selectedPassage.passageZh : selectedPassage.passageEn);
     resetPracticeState(passageLanguage);
-    void generatePassageForOption(nextPassageId, passageLanguage);
-  }
+    void generatePassageForOption(selectedPassageId, passageLanguage);
+  }, [generatePassageForOption, passageLanguage, selectedPassageId]);
 
   return (
     <section className="grid gap-6 xl:grid-cols-[minmax(560px,1fr)_minmax(430px,0.76fr)]">
       <aside className="overflow-hidden rounded-[1.25rem] border border-slate-200 bg-white shadow-lg shadow-sky-100/70">
         <div className="border-b border-slate-100 bg-slate-50/80 px-5 py-4">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-sky-700">
-                Reading passage
-              </p>
-              <h2 className="mt-1 text-lg font-bold text-slate-950">
-                Taiwan Japanese Colonial Period
-              </h2>
-            </div>
-            <div className="grid grid-cols-2 rounded-full border border-slate-200 bg-white p-1 text-xs font-bold shadow-sm">
-              <button
-                type="button"
-                onClick={() => handleLanguageChange("en")}
-                aria-pressed={passageLanguage === "en"}
-                className={`rounded-full px-4 py-2 transition ${
-                  passageLanguage === "en" ? "bg-sky-700 text-white shadow-sm" : "text-slate-600"
-                }`}
-              >
-                English
-              </button>
-              <button
-                type="button"
-                onClick={() => handleLanguageChange("zh")}
-                aria-pressed={passageLanguage === "zh"}
-                className={`rounded-full px-4 py-2 transition ${
-                  passageLanguage === "zh" ? "bg-sky-700 text-white shadow-sm" : "text-slate-600"
-                }`}
-              >
-                {"\u4e2d\u6587"}
-              </button>
-            </div>
-          </div>
-          <div className="mt-4">
-            <label className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500" htmlFor="passage-topic">
-              Choose an event or topic
-            </label>
-            <select
-              id="passage-topic"
-              value={selectedPassageId}
-              onChange={(event) => handlePassageSelection(event.target.value)}
-              disabled={isGeneratingPassage}
-              className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm font-semibold text-slate-800 outline-none transition focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
-            >
-              {taiwanReadingPassageOptions.map((option) => (
-                <option key={option.id} value={option.id}>
-                  {passageLanguage === "zh" ? option.titleZh : option.titleEn}
-                </option>
-              ))}
-            </select>
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.16em] text-sky-700">
+              {text.readingPassage}
+            </p>
+            <h2 className="mt-1 text-lg font-bold text-slate-950">
+              {selectedEvent.title}
+            </h2>
           </div>
         </div>
         <div className="p-5">
@@ -519,15 +463,6 @@ export function ChatPanel({ studentProfile }: ChatPanelProps) {
           />
         </div>
 
-        <div className="mt-4 flex justify-end">
-          <button
-            type="button"
-            onClick={restartPractice}
-            className="rounded-full border border-slate-200 bg-white px-5 py-3 text-sm font-bold text-slate-700 transition hover:border-sky-200 hover:bg-sky-50 hover:text-sky-800"
-          >
-            {text.restart}
-          </button>
-        </div>
         </div>
       </aside>
 

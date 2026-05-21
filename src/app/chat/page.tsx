@@ -1,12 +1,19 @@
 import { redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
-import { ChatPanel } from "@/components/chat-panel";
+import { ChatRoomClient } from "@/components/chat-room-client";
+import { findHistoryEvent } from "@/data/history-events";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type { StudentProfile } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function ChatPage() {
+type ChatPageProps = {
+  searchParams?: Promise<{
+    topic?: string;
+  }>;
+};
+
+export default async function ChatPage({ searchParams }: ChatPageProps) {
   let supabase;
 
   try {
@@ -51,30 +58,18 @@ export default async function ChatPage() {
     redirect("/login");
   }
 
+  const params = await searchParams;
+  const selectedEvent = findHistoryEvent(params?.topic);
+
+  if (!selectedEvent) {
+    redirect("/select-event");
+  }
+
   return (
     <div className="min-h-screen bg-[linear-gradient(180deg,#f0f9ff_0%,#ffffff_42%,#ecfdf5_100%)] text-slate-950">
       <AppHeader />
       <main className="mx-auto w-full max-w-7xl px-5 py-8 lg:px-8 lg:py-10">
-        <div className="mb-6 flex flex-col gap-4 rounded-[1.25rem] border border-white bg-white/75 p-5 shadow-sm shadow-sky-100/70 backdrop-blur md:flex-row md:items-end md:justify-between">
-          <div>
-            <p className="text-sm font-bold uppercase tracking-[0.16em] text-sky-700">
-              Taiwan history reading room
-            </p>
-            <h1 className="mt-2 text-3xl font-bold tracking-tight text-slate-950 sm:text-4xl">
-              Chat with Hank
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600 sm:text-base">
-              Read a passage about Taiwan under Japanese rule, then practice main idea,
-              evidence, reasoning, and reflection with guided feedback.
-            </p>
-          </div>
-          <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold text-slate-600">
-            <span className="rounded-full bg-sky-50 px-3 py-2 text-sky-800">Read</span>
-            <span className="rounded-full bg-emerald-50 px-3 py-2 text-emerald-800">Think</span>
-            <span className="rounded-full bg-amber-50 px-3 py-2 text-amber-800">Review</span>
-          </div>
-        </div>
-        <ChatPanel studentProfile={profile} />
+        <ChatRoomClient studentProfile={profile} selectedEvent={selectedEvent} />
       </main>
     </div>
   );

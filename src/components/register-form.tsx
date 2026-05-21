@@ -122,7 +122,7 @@ export function RegisterForm() {
       return;
     }
 
-    router.push("/chat");
+    router.push("/");
     router.refresh();
   }
 

@@ -367,6 +367,8 @@ export async function POST(request: Request) {
   const history = normalizeHistory(body.history);
   const historyAnswerCount = Math.max(0, Math.min(body.historyAnswerCount ?? 0, maxHistoryAnswers));
   const passageLanguage = isPassageLanguage(body.passageLanguage) ? body.passageLanguage : "en";
+  const selectedTopic = body.selectedTopic?.trim().slice(0, 120) || "Taiwan history during the Japanese colonial period";
+  const currentRole = body.currentRole?.trim().slice(0, 160) || "A Taiwanese student living during the Japanese colonial period";
 
   if (!message || !passage || !isChatStep(step)) {
     return NextResponse.json(
@@ -471,10 +473,14 @@ export async function POST(request: Request) {
   const instructions = [
     "Your name is Hank, and you are a friendly learning companion for junior high school students.",
     "The student is learning Taiwan history, especially Taiwan during the Japanese colonial period from 1895 to 1945.",
+    `The selected topic for this chat is: ${selectedTopic}.`,
+    `The related historical perspective or role is: ${currentRole}.`,
     "Use the fixed Taiwan Japanese Colonial Period Knowledge Base below as background knowledge.",
     "Do not mention the knowledge base by name to the student.",
     "Your main job is reading comprehension, not deep historical discussion.",
     "Only check whether the student understands the reading passage shown to them.",
+    "Keep the response focused on the selected topic and the reading passage.",
+    "Do not drift to unrelated Taiwan history topics unless the student clearly asks for a comparison.",
     "Do not ask about causes, motives, long-term effects, or broader historical background unless those ideas are explicitly written in the passage.",
     "If the student asks beyond the passage, answer briefly and return to the passage.",
     "Your goal is not to give answers directly.",
@@ -509,6 +515,8 @@ export async function POST(request: Request) {
     `Next step to return: ${nextStep}`,
     `History answers used before this message: ${historyAnswerCount}`,
     `History answers used after this message: ${nextHistoryAnswerCount}`,
+    `Selected topic: ${selectedTopic}`,
+    `Related role: ${currentRole}`,
     `Reading passage: ${passage}`,
     `Taiwan Japanese Colonial Period Knowledge Base:\n${knowledgeBaseContext}`,
     `Recent chat history: ${JSON.stringify(history)}`,

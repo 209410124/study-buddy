@@ -44,6 +44,8 @@ export type ChatRequest = {
   passageLanguage: PassageLanguage;
   learningSessionId?: string;
   historyAnswerCount?: number;
+  selectedTopic?: string;
+  currentRole?: string;
   history?: ChatMessage[];
 };
 
@@ -106,4 +108,28 @@ export type ConversationHistorySession = {
   passage_language: PassageLanguage | null;
   created_at: string;
   completed_at: string | null;
+};
+
+export type RolePlayRole = {
+  eventId: string;
+  roleName: string;
+  perspective: string;
+  background: string;
+  guidingFocus: string;
+};
+
+export type RolePlayRequest = {
+  message: string;
+  eventId: string;
+  roleName: string;
+  perspective: string;
+  background: string;
+  guidingFocus: string;
+  eventSummary: string;
+  passageLanguage?: PassageLanguage;
+  history?: ChatMessage[];
+};
+
+export type RolePlayResponse = {
+  reply: string;
 };

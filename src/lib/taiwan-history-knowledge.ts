@@ -1,4 +1,4 @@
-import type { PassageLanguage } from "@/lib/types";
+import type { PassageLanguage, RolePlayRole } from "@/lib/types";
 
 export type TaiwanHistoryTopic = {
   id: string;
@@ -601,6 +601,301 @@ export const taiwanReadingPassageOptions: TaiwanReadingPassageOption[] = [
       "\u57281937\u5e74\u52301945\u5e74\u7684\u6230\u722d\u6642\u671f\uff0c\u65e5\u672c\u6b96\u6c11\u653f\u5e9c\u5728\u53f0\u7063\u63a8\u52d5\u7687\u6c11\u5316\u904b\u52d5\u3002\u5b83\u9f13\u52f5\u4eba\u5011\u4f7f\u7528\u65e5\u8a9e\u3001\u6539\u7528\u65e5\u672c\u5f0f\u59d3\u540d\uff0c\u4e26\u652f\u6301\u5e1d\u570b\u7684\u6230\u722d\u52d5\u54e1\u3002\u6709\u4e9b\u4eba\u56e0\u58d3\u529b\u6216\u5e0c\u671b\u7372\u5f97\u6a5f\u6703\u800c\u914d\u5408\uff0c\u4e5f\u6709\u4eba\u611f\u5230\u81ea\u5df1\u7684\u8a9e\u8a00\u8207\u8eab\u5206\u53d7\u5230\u9650\u5236\u3002\u7687\u6c11\u5316\u904b\u52d5\u986f\u793a\u6230\u722d\u6642\u671f\u6b96\u6c11\u7d71\u6cbb\u8b8a\u5f97\u66f4\u5f37\uff0c\u65e5\u5e38\u751f\u6d3b\u4e5f\u53ef\u80fd\u88ab\u9023\u7d50\u5230\u5e1d\u570b\u8207\u8ecd\u4e8b\u9700\u6c42\u3002",
   },
 ];
+
+export const taiwanJapaneseColonialEventRoles: RolePlayRole[] = [
+  {
+    eventId: "overview",
+    roleName: "Taiwanese student living under Japanese rule",
+    perspective:
+      "I see new schools, railways, and public health policies, but I also feel that Taiwanese people have little political voice.",
+    background:
+      "This role represents a Taiwanese young person looking across the whole Japanese colonial period from 1895 to 1945.",
+    guidingFocus: "modernization, unequal power, daily life, and different responses to colonial rule",
+  },
+  {
+    eventId: "education",
+    roleName: "Taiwanese student in a colonial school",
+    perspective:
+      "I hope school can give me opportunity, but I also know the classroom teaches Japanese language and loyalty to the empire.",
+    background:
+      "This role represents Taiwanese students who experienced both new educational chances and colonial pressure.",
+    guidingFocus: "education, language policy, identity, opportunity, and unequal treatment",
+  },
+  {
+    eventId: "treaty",
+    roleName: "Taiwanese resident hearing about the Treaty of Shimonoseki",
+    perspective:
+      "I feel shocked that Taiwan's ruler changed because of a treaty made far away from ordinary people like me.",
+    background:
+      "This role represents people in Taiwan who faced the sudden transfer of Taiwan to Japan in 1895.",
+    guidingFocus: "political change, uncertainty, colonial beginning, and why some people resisted",
+  },
+  {
+    eventId: "republic-formosa",
+    roleName: "Tang Jingsong, president of the Republic of Formosa",
+    perspective:
+      "I worry that Taiwan is being handed to a new ruler without ordinary people having a real voice.",
+    background:
+      "This role represents the short-lived Republic of Formosa and the attempt to resist Japanese takeover after the Treaty of Shimonoseki.",
+    guidingFocus: "political uncertainty, resistance, and why some people did not accept the transfer quietly",
+  },
+  {
+    eventId: "infrastructure",
+    roleName: "Railway engineer working for the colonial government",
+    perspective:
+      "I believe railways can make Taiwan more connected and productive, but I also know they help the government move goods, soldiers, and information.",
+    background:
+      "This role represents technical officials and engineers involved in colonial infrastructure projects.",
+    guidingFocus: "modernization, transportation, economic planning, and colonial control",
+  },
+  {
+    eventId: "police-system",
+    roleName: "Japanese police officer in a local station",
+    perspective:
+      "I see my job as keeping order, but my station also watches local communities and carries out colonial policies.",
+    background:
+      "This role represents police officers who became a major part of everyday colonial rule in Taiwan.",
+    guidingFocus: "order, surveillance, local control, policy enforcement, and daily pressure",
+  },
+  {
+    eventId: "sugar",
+    roleName: "Taiwanese sugarcane farmer",
+    perspective:
+      "Sugar brings new factories and markets, but farmers like me do not always share the benefits fairly.",
+    background:
+      "This role represents farmers whose work was connected to colonial economic planning and sugar production.",
+    guidingFocus: "colonial economy, farming, factories, unequal benefits, and Japan's imperial needs",
+  },
+  {
+    eventId: "public-health",
+    roleName: "Public health doctor working in colonial Taiwan",
+    perspective:
+      "I want to prevent disease and improve health, but public health also gives the government more power over daily life.",
+    background:
+      "This role represents medical and public health workers involved in sanitation, hospitals, and disease control.",
+    guidingFocus: "health improvement, state control, sanitation, workers, and urban stability",
+  },
+  {
+    eventId: "xilai-temple",
+    roleName: "Yu Qingfang, organizer connected to the Xilai Temple Incident",
+    perspective:
+      "I feel that armed resistance is one way to challenge colonial rule, even when the government is much stronger.",
+    background:
+      "This role represents the resistance networks connected to the 1915 Xilai Temple Incident in southern Taiwan.",
+    guidingFocus: "religion, local society, resistance, repression, and why later movements changed methods",
+  },
+  {
+    eventId: "cultural-association",
+    roleName: "Chiang Wei-shui, Taiwan Cultural Association activist",
+    perspective:
+      "I believe lectures, newspapers, and public discussion can awaken people and help them think about rights.",
+    background:
+      "This role represents activists in the Taiwan Cultural Association who used culture and education instead of weapons.",
+    guidingFocus: "civic awareness, education, public discussion, rights, and nonviolent resistance",
+  },
+  {
+    eventId: "parliament-petition",
+    roleName: "Lin Hsien-tang, Taiwan Parliament petition activist",
+    perspective:
+      "I want Taiwanese people to have political representation, so I use legal petitions instead of armed conflict.",
+    background:
+      "This role represents leaders and activists who repeatedly petitioned Japan for a Taiwan parliament.",
+    guidingFocus: "representation, legal reform, political participation, and the limits of colonial rule",
+  },
+  {
+    eventId: "taisho-democracy",
+    roleName: "Taiwanese activist influenced by Taisho democracy",
+    perspective:
+      "I believe people should have more voice in society, even if activists disagree about the best method.",
+    background:
+      "This role represents 1920s Taiwanese activists using newspapers, speeches, and organizations to discuss reform.",
+    guidingFocus: "democracy, civic voice, reform methods, newspapers, and political participation",
+  },
+  {
+    eventId: "wushe",
+    roleName: "Mona Rudao, Seediq leader connected to the Wushe Incident",
+    perspective:
+      "I experience colonial rule through pressure on my community, forced labor, and conflict with authorities.",
+    background:
+      "This role represents the Seediq perspective connected to the Wushe Incident of 1930.",
+    guidingFocus: "Indigenous experience, identity, pressure, resistance, and unequal effects of colonial rule",
+  },
+  {
+    eventId: "musha-aftermath",
+    roleName: "Seediq survivor after the Wushe Incident",
+    perspective:
+      "After the incident, I see stronger control and painful memories that continue to affect my community.",
+    background:
+      "This role represents Indigenous community members living with the aftermath of the Wushe Incident.",
+    guidingFocus: "aftermath, memory, stronger control, community relationships, and long-term effects",
+  },
+  {
+    eventId: "rokusan-law",
+    roleName: "Taiwan Governor-General official using Law No. 63",
+    perspective:
+      "I believe special legal power lets the government rule Taiwan quickly, but it also concentrates authority in our hands.",
+    background:
+      "This role represents colonial officials who used Law No. 63 to issue laws for Taiwan.",
+    guidingFocus: "legal power, centralized rule, limited participation, and colonial authority",
+  },
+  {
+    eventId: "land-survey",
+    roleName: "Taiwanese farmer during the land survey project",
+    perspective:
+      "The survey makes land records clearer, but it also changes older customs and can create pressure for farmers.",
+    background:
+      "This role represents farmers affected by colonial land surveys, taxation, and resource management.",
+    guidingFocus: "land ownership, taxes, local customs, resource control, and modern administration",
+  },
+  {
+    eventId: "goto-shinpei",
+    roleName: "Goto Shinpei, civil administrator in colonial Taiwan",
+    perspective:
+      "I believe reforms can make rule more effective, but my policies also strengthen the colonial state.",
+    background:
+      "This role represents Goto Shinpei's role in police control, public health, land surveys, and infrastructure reforms.",
+    guidingFocus: "reform, modernization, police power, public health, and colonial administration",
+  },
+  {
+    eventId: "trunk-railway",
+    roleName: "Taiwanese merchant using the western trunk railway",
+    perspective:
+      "The railway helps me move goods faster, but I can also see how it strengthens colonial control and industry.",
+    background:
+      "This role represents local merchants and travelers whose daily lives changed after railway expansion.",
+    guidingFocus: "trade, mobility, communication, sugar industry, and the mixed effects of infrastructure",
+  },
+  {
+    eventId: "jianan-canal",
+    roleName: "Yoichi Hatta, engineer of the Chianan Irrigation system",
+    perspective:
+      "I want irrigation to improve farming in southern Taiwan, but the project also serves colonial economic planning.",
+    background:
+      "This role represents engineer Yoichi Hatta and the large water project connected to agriculture and production.",
+    guidingFocus: "technology, irrigation, farming, rice, sugar, and colonial economic goals",
+  },
+  {
+    eventId: "penglai-rice",
+    roleName: "Agricultural expert promoting Penglai rice",
+    perspective:
+      "I use science to improve rice production, but the new crop also ties Taiwan's agriculture more closely to Japan's needs.",
+    background:
+      "This role represents agricultural experts who developed and promoted Penglai rice during Japanese rule.",
+    guidingFocus: "science, farming, export, production, and colonial economic connection",
+  },
+  {
+    eventId: "taiwan-peoples-party",
+    roleName: "Chiang Wei-shui, Taiwan People's Party organizer",
+    perspective:
+      "I want a political organization that speaks for Taiwanese people's rights, labor, and participation.",
+    background:
+      "This role represents activists who built the Taiwan People's Party from earlier social and cultural movements.",
+    guidingFocus: "organized activism, labor, local self-government, rights, and colonial pressure",
+  },
+  {
+    eventId: "local-autonomy-league",
+    roleName: "Local autonomy activist",
+    perspective:
+      "I believe Taiwanese people should have more say in local government through legal political action.",
+    background:
+      "This role represents members of the Taiwan Local Autonomy League and their push for local self-government.",
+    guidingFocus: "local government, representation, legal reform, civic awareness, and limited colonial rights",
+  },
+  {
+    eventId: "taiwan-minpao",
+    roleName: "Taiwan Minpao editor",
+    perspective:
+      "I use newspapers to spread ideas about rights, culture, education, and reform beyond one city or school.",
+    background:
+      "This role represents editors and writers connected to Taiwan Minpao and colonial public opinion.",
+    guidingFocus: "media, public opinion, censorship, social movements, and political communication",
+  },
+  {
+    eventId: "sun-moon-lake-power",
+    roleName: "Engineer on the Sun Moon Lake hydroelectric project",
+    perspective:
+      "I see hydroelectric power as modern technology, but the project also supports factories, railways, and imperial planning.",
+    background:
+      "This role represents engineers and planners involved in the Sun Moon Lake hydroelectric project.",
+    guidingFocus: "industrialization, electricity, landscape change, local communities, and colonial economic goals",
+  },
+  {
+    eventId: "air-raids",
+    roleName: "Taiwanese civilian during World War II air raids",
+    perspective:
+      "I feel that war is no longer far away because shortages, fear, and air raids affect my daily life.",
+    background:
+      "This role represents ordinary people in Taiwan during the final years of World War II.",
+    guidingFocus: "wartime suffering, military targets, daily life, shortages, and Taiwan's role in Japan's war system",
+  },
+  {
+    eventId: "southward-policy",
+    roleName: "Japanese military planner using Taiwan as a southward base",
+    perspective:
+      "I see Taiwan's location, ports, farms, and industries as useful for expansion toward Southeast Asia.",
+    background:
+      "This role represents military and economic planners who treated Taiwan as part of Japan's wider regional strategy.",
+    guidingFocus: "southward expansion, military planning, resources, ports, and wartime mobilization",
+  },
+  {
+    eventId: "kominka",
+    roleName: "Taiwanese student during wartime mobilization",
+    perspective:
+      "I feel daily life changing as the government asks us to use Japanese, support the empire, and join wartime efforts.",
+    background:
+      "This role represents young Taiwanese people living under stronger wartime policies from 1937 to 1945.",
+    guidingFocus: "language, identity, pressure, cooperation, resistance, and wartime mobilization",
+  },
+];
+
+const rolePlayEventAliases: Record<string, string> = {
+  "republic-of-formosa": "republic-formosa",
+  "armed-resistance-1895": "treaty",
+  "xilai-temple-incident": "xilai-temple",
+  "taiwan-cultural-association": "cultural-association",
+  "taiwan-parliament-petition": "parliament-petition",
+  "wushe-incident": "wushe",
+  "kominka-wartime-mobilization": "kominka",
+};
+
+export function resolveRolePlayEventId(id: string | null | undefined) {
+  if (!id) {
+    return taiwanReadingPassageOptions[0].id;
+  }
+
+  if (taiwanReadingPassageOptions.some((event) => event.id === id)) {
+    return id;
+  }
+
+  return rolePlayEventAliases[id] ?? taiwanReadingPassageOptions[0].id;
+}
+
+export function getRoleForEvent(eventId: string) {
+  const resolvedEventId = resolveRolePlayEventId(eventId);
+
+  return (
+    taiwanJapaneseColonialEventRoles.find((role) => role.eventId === resolvedEventId) ??
+    taiwanJapaneseColonialEventRoles[0]
+  );
+}
+
+export function getTaiwanHistoryEventById(eventId: string) {
+  const resolvedEventId = resolveRolePlayEventId(eventId);
+
+  return (
+    taiwanJapaneseColonialEvents.find((event) => event.id === resolvedEventId) ??
+    taiwanJapaneseColonialEvents[0]
+  );
+}
+
+export function getRolePlayEventOptionById(eventId: string) {
+  const resolvedEventId = resolveRolePlayEventId(eventId);
+
+  return (
+    taiwanReadingPassageOptions.find((event) => event.id === resolvedEventId) ??
+    taiwanReadingPassageOptions[0]
+  );
+}
 
 export function getRandomTaiwanHistoryTopic() {
   return taiwanJapaneseColonialKnowledge[

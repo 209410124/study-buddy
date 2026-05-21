@@ -47,7 +47,7 @@ export function LoginForm() {
       return;
     }
 
-    router.push("/chat");
+    router.push("/");
     router.refresh();
   }
 
