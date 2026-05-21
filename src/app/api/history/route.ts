@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { starterSessions } from "@/lib/study-data";
 import type { StudySession } from "@/lib/types";
-import { getSupabaseServerClient } from "@/lib/supabase/server";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export async function GET() {
-  const supabase = getSupabaseServerClient();
+  let supabase;
 
-  if (!supabase) {
+  try {
+    supabase = await createSupabaseServerClient();
+  } catch {
     return NextResponse.json({ sessions: starterSessions });
   }
 

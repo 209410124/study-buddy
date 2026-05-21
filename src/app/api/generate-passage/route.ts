@@ -1,4 +1,9 @@
 import { NextResponse } from "next/server";
+import {
+  formatReadingPassageOptionForPrompt,
+  getReadingPassageOptionById,
+  getRandomTaiwanHistoryEntryForPrompt,
+} from "@/lib/taiwan-history-knowledge";
 import type { PassageLanguage } from "@/lib/types";
 
 type OpenAIResponseContent = {
@@ -16,19 +21,6 @@ type OpenAIResponseBody = {
     message?: string;
   };
 };
-
-const subtopics = [
-  "education during Japanese rule",
-  "railways and infrastructure",
-  "public health campaigns",
-  "the sugar industry and colonial economy",
-  "colonial policies and daily life",
-  "the Kominka movement",
-  "Taiwanese society under Japanese rule",
-  "resistance movements",
-  "local government and police control",
-  "modernization and its limits",
-];
 
 const localExamples = [
   "Taipei",
@@ -101,10 +93,15 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => ({}))) as {
     passageLanguage?: unknown;
+    passageOptionId?: unknown;
   };
   const passageLanguage = isPassageLanguage(body.passageLanguage)
     ? body.passageLanguage
     : "en";
+  const selectedPassageOption =
+    typeof body.passageOptionId === "string"
+      ? getReadingPassageOptionById(body.passageOptionId)
+      : null;
 
   const languageInstruction =
     passageLanguage === "zh"
@@ -130,10 +127,12 @@ export async function POST(request: Request) {
   ].join("\n");
 
   // These random choices make each generated passage feel different while staying in scope.
-  const randomSubtopic = pickRandom(subtopics);
   const randomLocalExample = pickRandom(localExamples);
-  const randomTimeFrame = pickRandom(timeFrames);
+  const randomTimeFrame = selectedPassageOption ? null : pickRandom(timeFrames);
   const randomAngle = pickRandom(readingAngles);
+  const knowledgeContext = selectedPassageOption
+    ? formatReadingPassageOptionForPrompt(selectedPassageOption, passageLanguage)
+    : getRandomTaiwanHistoryEntryForPrompt(passageLanguage);
 
   let openAIResponse: Response;
 
@@ -154,9 +153,12 @@ export async function POST(request: Request) {
           passageLanguage === "zh"
             ? "The passage must be written in Traditional Chinese."
             : "The passage must be written in English.",
-          `Random subtopic: ${randomSubtopic}.`,
+          selectedPassageOption
+            ? "Use this selected event or topic as the factual source:"
+            : "Use this fixed classroom knowledge base entry as the factual source. It may be a topic or a specific historical event:",
+          knowledgeContext,
           `Local example: ${randomLocalExample}.`,
-          `Time frame: ${randomTimeFrame}.`,
+          randomTimeFrame ? `Time frame: ${randomTimeFrame}.` : "Use the time frame from the selected source.",
           `Reading angle: ${randomAngle}.`,
           "Make this passage different from a generic overview. Use specific but student-friendly historical details.",
         ].join("\n"),
