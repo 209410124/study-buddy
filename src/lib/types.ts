@@ -36,6 +36,24 @@ export type LearningProfile = {
   suggestion: string;
 };
 
+export type LearningSummary = {
+  practiced_topic: string;
+  practiced_skills: string[];
+  strength: string;
+  weakness: string;
+  next_step: string;
+  support_level: "Low" | "Medium" | "High";
+  simple_score: 1 | 2 | 3;
+};
+
+export type LearningSummaryRow = LearningSummary & {
+  id: string;
+  student_id: string;
+  session_id: string | null;
+  created_at: string;
+  updated_at: string;
+};
+
 export type ChatRequest = {
   message: string;
   step: ChatStep;
@@ -47,6 +65,7 @@ export type ChatRequest = {
   selectedTopic?: string;
   currentRole?: string;
   history?: ChatMessage[];
+  answeredItems?: string[];
 };
 
 export type ChatResponse = {
@@ -106,6 +125,7 @@ export type ConversationHistorySession = {
   conversation: ChatMessage[];
   reading_check_count: number | null;
   passage_language: PassageLanguage | null;
+  learning_summary: LearningSummary | null;
   created_at: string;
   completed_at: string | null;
 };

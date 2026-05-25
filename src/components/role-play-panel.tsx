@@ -3,6 +3,7 @@
 import { FormEvent, useMemo, useState } from "react";
 import { useLanguage } from "@/components/language-provider";
 import { StudyBuddyAvatar } from "@/components/study-buddy-avatar";
+import { findHistoryEvent } from "@/data/history-events";
 import {
   getRoleForEvent,
   getRolePlayEventOptionById,
@@ -195,6 +196,7 @@ const uiText = {
     eventLabel: "Taiwan Japanese colonial period event",
     currentRole: "Current role",
     event: "Event",
+    year: "Year",
     conversation: "Role-play conversation",
     conversationIntro:
       "Ask about the event. The role will answer briefly and ask one guiding question at a time.",
@@ -217,6 +219,7 @@ const uiText = {
     eventLabel: "台灣日治時期事件",
     currentRole: "目前角色",
     event: "事件",
+    year: "年份",
     conversation: "角色扮演對話",
     conversationIntro: "詢問這個事件。角色會簡短回答，並一次只問一個引導問題。",
     thinking: "正在以角色觀點思考...",
@@ -247,6 +250,10 @@ export function RolePlayPanel({ initialEventId }: RolePlayPanelProps) {
   const resolvedInitialEventId = resolveRolePlayEventId(initialEventId);
   const selectedEvent = useMemo(
     () => getRolePlayEventOptionById(resolvedInitialEventId),
+    [resolvedInitialEventId],
+  );
+  const timelineEvent = useMemo(
+    () => findHistoryEvent(resolvedInitialEventId),
     [resolvedInitialEventId],
   );
   const selectedRole = useMemo(
@@ -358,6 +365,11 @@ export function RolePlayPanel({ initialEventId }: RolePlayPanelProps) {
             <p className="text-xs font-bold uppercase tracking-[0.14em] text-slate-500">
               {text.event}
             </p>
+            {timelineEvent ? (
+              <span className="mt-2 inline-flex rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-800 ring-1 ring-sky-100">
+                {text.year}: {timelineEvent.year}
+              </span>
+            ) : null}
             <h3 className="mt-2 text-lg font-bold text-slate-950">{selectedEventTitle}</h3>
             <p className="mt-3 text-sm leading-6 text-slate-600">{selectedEventPassage}</p>
           </div>

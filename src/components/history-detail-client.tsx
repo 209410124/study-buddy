@@ -1,9 +1,11 @@
 "use client";
 
 import Link from "next/link";
+import { LearningSummaryCard } from "@/components/learning-summary-card";
 import { StudyBuddyAvatar } from "@/components/study-buddy-avatar";
 import { useLanguage } from "@/components/language-provider";
-import type { ChatMessage, PassageLanguage, StudentProfile } from "@/lib/types";
+import { parseLearningSummary } from "@/lib/analyze-learning";
+import type { ChatMessage, LearningSummary, PassageLanguage, StudentProfile } from "@/lib/types";
 
 type HistoryDetailSession = {
   id: string;
@@ -20,6 +22,7 @@ type HistoryDetailClientProps = {
   profile: StudentProfile;
   session: HistoryDetailSession;
   conversation: ChatMessage[];
+  learningSummary: LearningSummary | null;
 };
 
 const text = {
@@ -65,9 +68,11 @@ export function HistoryDetailClient({
   profile,
   session,
   conversation,
+  learningSummary: savedLearningSummary,
 }: HistoryDetailClientProps) {
   const { language } = useLanguage();
   const t = text[language];
+  const learningSummary = savedLearningSummary ?? parseLearningSummary(session.summary);
 
   return (
     <main className="mx-auto grid w-full max-w-5xl gap-6 px-6 py-10">
@@ -96,10 +101,14 @@ export function HistoryDetailClient({
             {formatDate(session.completed_at, language, t.notFinished)}
           </span>
         </div>
-        {session.summary ? (
+        {session.summary && !learningSummary ? (
           <p className="mt-4 text-sm leading-6 text-slate-600">{session.summary}</p>
         ) : null}
       </section>
+
+      {learningSummary ? (
+        <LearningSummaryCard summary={learningSummary} language={language} />
+      ) : null}
 
       <section className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
         <article className="rounded-3xl border border-sky-100 bg-white p-6 shadow-sm">

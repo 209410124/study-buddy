@@ -6,6 +6,8 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 import type {
   ChatMessage,
   ConversationHistorySession,
+  LearningSummary,
+  LearningSummaryRow,
   LearningProfileRow,
   StudentProfile,
 } from "@/lib/types";
@@ -61,6 +63,37 @@ export default async function HistoryPage() {
         .limit(10),
     ]);
 
+  const sessionIds = (sessions ?? []).map((session) => session.id);
+  const { data: summaryRows } =
+    sessionIds.length > 0
+      ? await supabase
+          .from("learning_summaries")
+          .select(
+            "id,student_id,session_id,practiced_topic,practiced_skills,strength,weakness,next_step,support_level,simple_score,created_at,updated_at",
+          )
+          .eq("student_id", user.id)
+          .in("session_id", sessionIds)
+          .order("created_at", { ascending: false })
+      : { data: [] };
+
+  const summaryBySessionId = new Map<string, LearningSummary>();
+
+  (summaryRows as LearningSummaryRow[] | null)?.forEach((summary) => {
+    if (!summary.session_id) {
+      return;
+    }
+
+    summaryBySessionId.set(summary.session_id, {
+      practiced_topic: summary.practiced_topic,
+      practiced_skills: summary.practiced_skills,
+      strength: summary.strength,
+      weakness: summary.weakness,
+      next_step: summary.next_step,
+      support_level: summary.support_level,
+      simple_score: summary.simple_score,
+    });
+  });
+
   const latestSessions: ConversationHistorySession[] = (sessions ?? []).map((session) => ({
     id: session.id,
     title: session.title,
@@ -72,6 +105,7 @@ export default async function HistoryPage() {
       : [],
     reading_check_count: session.reading_check_count,
     passage_language: session.passage_language === "zh" ? "zh" : "en",
+    learning_summary: summaryBySessionId.get(session.id) ?? null,
     created_at: session.created_at,
     completed_at: session.completed_at,
   }));

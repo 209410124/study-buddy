@@ -3,6 +3,7 @@
 import { ChatPanel } from "@/components/chat-panel";
 import { useLanguage } from "@/components/language-provider";
 import type { HistoryEvent } from "@/data/history-events";
+import { getLocalizedHistoryEventTitle } from "@/lib/history-event-title";
 import type { PassageLanguage, StudentProfile } from "@/lib/types";
 
 const pageText: Record<
@@ -47,6 +48,7 @@ type ChatRoomClientProps = {
 export function ChatRoomClient({ studentProfile, selectedEvent }: ChatRoomClientProps) {
   const { language } = useLanguage();
   const text = pageText[language];
+  const selectedEventTitle = getLocalizedHistoryEventTitle(selectedEvent, language);
 
   return (
     <>
@@ -62,7 +64,7 @@ export function ChatRoomClient({ studentProfile, selectedEvent }: ChatRoomClient
             {text.description}
           </p>
           <p className="mt-3 w-fit rounded-full bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-800 ring-1 ring-sky-100">
-            {text.currentTopic}: {selectedEvent.title}
+            {text.currentTopic}: {selectedEvent.year} · {selectedEventTitle}
           </p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold text-slate-600">

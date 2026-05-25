@@ -17,6 +17,7 @@ type LanguageContextValue = {
 
 const LanguageContext = createContext<LanguageContextValue | null>(null);
 const storageKey = "ai-study-buddy-language";
+const cookieKey = "ai-study-buddy-language";
 const defaultLanguage: PassageLanguage = "en";
 const languageListeners = new Set<() => void>();
 
@@ -29,11 +30,24 @@ function getStoredLanguage(): PassageLanguage {
     return defaultLanguage;
   }
 
+  const languageFromUrl = new URLSearchParams(window.location.search).get("lang");
+
+  if (languageFromUrl === "en" || languageFromUrl === "zh") {
+    return languageFromUrl;
+  }
+
   const storedLanguage = window.localStorage.getItem(storageKey);
 
-  return storedLanguage === "en" || storedLanguage === "zh"
-    ? storedLanguage
-    : defaultLanguage;
+  if (storedLanguage === "en" || storedLanguage === "zh") {
+    return storedLanguage;
+  }
+
+  const storedCookie = document.cookie
+    .split("; ")
+    .find((cookie) => cookie.startsWith(`${cookieKey}=`))
+    ?.split("=")[1];
+
+  return storedCookie === "en" || storedCookie === "zh" ? storedCookie : defaultLanguage;
 }
 
 function subscribeToLanguage(callback: () => void) {
@@ -57,6 +71,18 @@ function notifyLanguageListeners() {
   languageListeners.forEach((callback) => callback());
 }
 
+function persistLanguage(language: PassageLanguage) {
+  window.localStorage.setItem(storageKey, language);
+  document.cookie = `${cookieKey}=${language}; path=/; max-age=31536000; samesite=lax`;
+}
+
+function syncLanguageQuery(language: PassageLanguage) {
+  const url = new URL(window.location.href);
+
+  url.searchParams.set("lang", language);
+  window.history.replaceState(window.history.state, "", url);
+}
+
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const language = useSyncExternalStore(
     subscribeToLanguage,
@@ -66,11 +92,12 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
 
   useEffect(() => {
     document.documentElement.lang = language === "zh" ? "zh-Hant" : "en";
-    window.localStorage.setItem(storageKey, language);
+    persistLanguage(language);
   }, [language]);
 
   function setLanguage(nextLanguage: PassageLanguage) {
-    window.localStorage.setItem(storageKey, nextLanguage);
+    persistLanguage(nextLanguage);
+    syncLanguageQuery(nextLanguage);
     notifyLanguageListeners();
   }
 

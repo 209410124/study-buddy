@@ -2,6 +2,7 @@
 
 import { useLanguage } from "@/components/language-provider";
 import { RolePlayPanel } from "@/components/role-play-panel";
+import { findHistoryEvent } from "@/data/history-events";
 import { getRolePlayEventOptionById } from "@/lib/taiwan-history-knowledge";
 
 const pageText = {
@@ -35,7 +36,11 @@ export function RolePlayRoomClient({ initialEventId }: RolePlayRoomClientProps) 
   const { language } = useLanguage();
   const text = pageText[language];
   const selectedEvent = getRolePlayEventOptionById(initialEventId);
+  const timelineEvent = findHistoryEvent(initialEventId);
   const selectedEventTitle = language === "zh" ? selectedEvent.titleZh : selectedEvent.titleEn;
+  const timelineTitle = timelineEvent
+    ? `${timelineEvent.year} · ${selectedEventTitle}`
+    : selectedEventTitle;
 
   return (
     <>
@@ -51,7 +56,7 @@ export function RolePlayRoomClient({ initialEventId }: RolePlayRoomClientProps) 
             {text.description}
           </p>
           <p className="mt-3 w-fit rounded-full bg-sky-50 px-3 py-1.5 text-xs font-bold text-sky-800 ring-1 ring-sky-100">
-            {text.currentTopic}: {selectedEventTitle}
+            {text.currentTopic}: {timelineTitle}
           </p>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center text-xs font-semibold text-slate-600">

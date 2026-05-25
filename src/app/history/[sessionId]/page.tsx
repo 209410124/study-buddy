@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { AppHeader } from "@/components/app-header";
 import { HistoryDetailClient } from "@/components/history-detail-client";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-import type { ChatMessage, StudentProfile } from "@/lib/types";
+import type { ChatMessage, LearningSummary, LearningSummaryRow, StudentProfile } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -47,7 +47,7 @@ export default async function HistoryDetailPage({ params }: HistoryDetailPagePro
     redirect("/login");
   }
 
-  const [{ data: profile }, { data: session }] = await Promise.all([
+  const [{ data: profile }, { data: session }, { data: summaryRow }] = await Promise.all([
     supabase
       .from("student_profiles")
       .select("id,display_name,username,email,grade_level,role,created_at,updated_at")
@@ -61,6 +61,14 @@ export default async function HistoryDetailPage({ params }: HistoryDetailPagePro
       .eq("id", sessionId)
       .eq("student_id", user.id)
       .maybeSingle(),
+    supabase
+      .from("learning_summaries")
+      .select(
+        "id,student_id,session_id,practiced_topic,practiced_skills,strength,weakness,next_step,support_level,simple_score,created_at,updated_at",
+      )
+      .eq("session_id", sessionId)
+      .eq("student_id", user.id)
+      .maybeSingle<LearningSummaryRow>(),
   ]);
 
   if (!profile) {
@@ -72,11 +80,27 @@ export default async function HistoryDetailPage({ params }: HistoryDetailPagePro
   }
 
   const conversation = normalizeConversation(session.conversation);
+  const learningSummary: LearningSummary | null = summaryRow
+    ? {
+        practiced_topic: summaryRow.practiced_topic,
+        practiced_skills: summaryRow.practiced_skills,
+        strength: summaryRow.strength,
+        weakness: summaryRow.weakness,
+        next_step: summaryRow.next_step,
+        support_level: summaryRow.support_level,
+        simple_score: summaryRow.simple_score,
+      }
+    : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-emerald-50 text-slate-950">
       <AppHeader />
-      <HistoryDetailClient profile={profile} session={session} conversation={conversation} />
+      <HistoryDetailClient
+        profile={profile}
+        session={session}
+        conversation={conversation}
+        learningSummary={learningSummary}
+      />
     </div>
   );
 }

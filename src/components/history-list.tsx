@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useLanguage } from "@/components/language-provider";
+import { LearningSummaryCard } from "@/components/learning-summary-card";
+import { parseLearningSummary } from "@/lib/analyze-learning";
 import type { ConversationHistorySession, LearningProfileRow, StudentProfile } from "@/lib/types";
 
 type HistoryListProps = {
@@ -25,6 +27,10 @@ const text = {
     currentSupport: "Current support",
     recentlyPracticedSkill: "Recently practiced skill",
     currentFocus: "Current focus",
+    completedTopics: "Completed topics",
+    latestSummary: "Latest summary",
+    recommendedNextPractice: "Recommended next practice",
+    noSummaryYet: "Generate a learning summary after chat to see it here.",
     conversationHistory: "Conversation history",
     historyDescription:
       "Each card is one finished reading practice. Open it to review the full chat.",
@@ -47,6 +53,10 @@ const text = {
     currentSupport: "目前輔助",
     recentlyPracticedSkill: "最近練習能力",
     currentFocus: "目前重點",
+    completedTopics: "完成主題",
+    latestSummary: "最新摘要",
+    recommendedNextPractice: "建議下一步練習",
+    noSummaryYet: "在聊天結束後產生學習摘要，就會顯示在這裡。",
     conversationHistory: "對話紀錄",
     historyDescription: "每張卡片是一次完成的閱讀練習。點開可以查看完整對話。",
     readingChecks: "次閱讀檢查",
@@ -82,6 +92,30 @@ function formatSupportLevel(value: string | null | undefined, language: "en" | "
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function localizeSummaryText(value: string, language: "en" | "zh") {
+  if (language === "en") {
+    return value;
+  }
+
+  const feedback: Record<string, string> = {
+    "Clear reasoning": "推論清楚",
+    "Used some evidence from the passage": "有使用文章中的證據",
+    "Stayed focused on the topic": "能專注在主題上",
+    "Answer too short": "答案太短",
+    "Lack of evidence": "缺少證據",
+    "Weak reasoning": "推論還不夠清楚",
+    "Keep making connections clearer": "繼續把想法連結說得更清楚",
+    "Write 2-3 complete sentences for each answer.": "每題試著寫 2 到 3 句完整句子。",
+    "Add one detail from the passage before explaining your idea.":
+      "先加入一個文章細節，再說明你的想法。",
+    "Use 'This shows...' to explain how your evidence supports your answer.":
+      "用「這顯示……」來說明證據如何支持你的答案。",
+    "Try comparing two viewpoints about the same event.": "試著比較同一事件中的兩種不同觀點。",
+  };
+
+  return feedback[value] ?? value;
+}
+
 export function HistoryList({
   studentProfile,
   learningProfile,
@@ -94,6 +128,24 @@ export function HistoryList({
   const recentlyPracticedSkill =
     learningProfile?.recently_practiced_skill ?? t.recentlyPracticedFallback;
   const supportLevel = formatSupportLevel(learningProfile?.support_level, language);
+  const summaries = latestSessions
+    .map((session) => session.learning_summary ?? parseLearningSummary(session.summary))
+    .filter((summary) => summary !== null);
+  const latestSummary = summaries[0] ?? null;
+  const completedTopics = new Set(
+    latestSessions.map((session) => session.topic ?? session.title).filter(Boolean),
+  ).size;
+  const mostCommonSummaryWeakness =
+    summaries.length > 0
+      ? summaries.reduce<Record<string, number>>((counts, summary) => {
+          counts[summary.weakness] = (counts[summary.weakness] ?? 0) + 1;
+          return counts;
+        }, {})
+      : null;
+  const dashboardWeakness = mostCommonSummaryWeakness
+    ? Object.entries(mostCommonSummaryWeakness).sort((a, b) => b[1] - a[1])[0]?.[0]
+    : commonWeakness;
+  const recommendedNextPractice = latestSummary?.next_step ?? recentlyPracticedSkill;
 
   return (
     <section className="grid gap-6">
@@ -103,12 +155,38 @@ export function HistoryList({
           <p className="mt-3 text-4xl font-bold text-sky-800">{totalSessions}</p>
         </article>
         <article className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">{t.mostCommonWeakness}</p>
-          <p className="mt-3 text-xl font-bold text-slate-950">{commonWeakness}</p>
+          <p className="text-sm font-semibold text-slate-500">{t.completedTopics}</p>
+          <p className="mt-3 text-4xl font-bold text-sky-800">{completedTopics}</p>
         </article>
         <article className="rounded-3xl border border-sky-100 bg-white p-5 shadow-sm">
-          <p className="text-sm font-semibold text-slate-500">{t.supportLevel}</p>
-          <p className="mt-3 text-xl font-bold text-emerald-700">{supportLevel}</p>
+          <p className="text-sm font-semibold text-slate-500">{t.mostCommonWeakness}</p>
+          <p className="mt-3 text-xl font-bold text-slate-950">
+            {localizeSummaryText(dashboardWeakness, language)}
+          </p>
+        </article>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[1.3fr_0.7fr]">
+        {latestSummary ? (
+          <LearningSummaryCard summary={latestSummary} language={language} />
+        ) : (
+          <article className="rounded-[1.25rem] border border-sky-100 bg-white p-6 shadow-sm">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-sky-700">
+              {t.latestSummary}
+            </p>
+            <p className="mt-3 text-sm leading-6 text-slate-600">{t.noSummaryYet}</p>
+          </article>
+        )}
+        <article className="rounded-[1.25rem] border border-amber-100 bg-amber-50/70 p-6 shadow-sm">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-amber-800">
+            {t.recommendedNextPractice}
+          </p>
+          <h2 className="mt-3 text-2xl font-bold text-slate-950">
+            {localizeSummaryText(recommendedNextPractice, language)}
+          </h2>
+          <p className="mt-4 text-sm font-semibold text-slate-600">
+            {t.supportLevel}: {supportLevel}
+          </p>
         </article>
       </div>
 
@@ -166,7 +244,13 @@ export function HistoryList({
                       {session.reading_check_count ?? 0} {t.readingChecks}
                     </p>
                     <p className="mt-2 line-clamp-2 text-sm leading-6 text-slate-700">
-                      {session.summary ?? t.completedFallback}
+                      {localizeSummaryText(
+                        session.learning_summary?.next_step ??
+                        parseLearningSummary(session.summary)?.next_step ??
+                        session.summary ??
+                          t.completedFallback,
+                        language,
+                      )}
                     </p>
                   </div>
                   <span className="w-fit rounded-full bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">

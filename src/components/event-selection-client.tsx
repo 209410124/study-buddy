@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { historyEvents } from "@/data/history-events";
 import { useLanguage } from "@/components/language-provider";
+import { getLocalizedHistoryEventTitle } from "@/lib/history-event-title";
 
 const pageText = {
   en: {
@@ -15,6 +16,7 @@ const pageText = {
     rolePlaySubtitle:
       "Select a Taiwan Japanese colonial period event before starting Historical Perspective Mode.",
     selectedTopic: "Selected topic",
+    year: "Year",
     role: "Role",
   },
   zh: {
@@ -24,6 +26,7 @@ const pageText = {
     rolePlayTitle: "選擇角色扮演事件",
     rolePlaySubtitle: "在進入歷史觀點模式前，先選擇一個台灣日治時期事件。",
     selectedTopic: "已選擇主題",
+    year: "年份",
     role: "角色",
   },
 };
@@ -177,6 +180,7 @@ export function EventSelectionClient({ mode = "chat" }: EventSelectionClientProp
   const isRolePlayMode = mode === "role-play";
   const [selectedEventId, setSelectedEventId] = useState(historyEvents[0].id);
   const selectedEvent = historyEvents.find((event) => event.id === selectedEventId) ?? historyEvents[0];
+  const selectedEventTitle = getLocalizedHistoryEventTitle(selectedEvent, language);
 
   function startChat(eventId = selectedEventId) {
     const path = isRolePlayMode ? "/role-play" : "/chat";
@@ -201,7 +205,7 @@ export function EventSelectionClient({ mode = "chat" }: EventSelectionClientProp
       </div>
 
       <div className="mb-5 rounded-[1rem] border border-emerald-100 bg-emerald-50/70 px-5 py-4 text-sm font-semibold text-emerald-900">
-        {text.selectedTopic}: {selectedEvent.title}
+        {text.selectedTopic}: {selectedEvent.year} · {selectedEventTitle}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
@@ -209,6 +213,7 @@ export function EventSelectionClient({ mode = "chat" }: EventSelectionClientProp
           const isSelected = event.id === selectedEventId;
           const localizedEvent =
             language === "zh" ? (zhEventDetails[event.id] ?? event) : event;
+          const localizedTitle = getLocalizedHistoryEventTitle(event, language);
 
           return (
             <button
@@ -222,10 +227,17 @@ export function EventSelectionClient({ mode = "chat" }: EventSelectionClientProp
                   : "border-slate-200 bg-white"
               }`}
             >
-              <span className="w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 ring-1 ring-amber-100">
-                {localizedEvent.category}
-              </span>
-              <h2 className="mt-4 text-lg font-bold leading-7 text-slate-950">{event.title}</h2>
+              <div className="flex flex-wrap gap-2">
+                <span className="w-fit rounded-full bg-sky-50 px-3 py-1 text-xs font-bold text-sky-800 ring-1 ring-sky-100">
+                  {text.year}: {event.year}
+                </span>
+                <span className="w-fit rounded-full bg-amber-50 px-3 py-1 text-xs font-bold text-amber-800 ring-1 ring-amber-100">
+                  {localizedEvent.category}
+                </span>
+              </div>
+              <h2 className="mt-4 text-lg font-bold leading-7 text-slate-950">
+                {localizedTitle}
+              </h2>
               <p className="mt-3 text-sm leading-6 text-slate-600">
                 {localizedEvent.description}
               </p>

@@ -1,14 +1,19 @@
 "use client";
 
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { LearningSummaryCard } from "@/components/learning-summary-card";
 import { StudyBuddyAvatar } from "@/components/study-buddy-avatar";
 import type { HistoryEvent } from "@/data/history-events";
+import { analyzeLearning } from "@/lib/analyze-learning";
+import { getLocalizedHistoryEventTitle } from "@/lib/history-event-title";
+import { extractAnsweredItems, mergeAnsweredItems } from "@/lib/passage-memory";
 import { getSupabaseBrowserClient } from "@/lib/supabase/client";
 import { taiwanReadingPassageOptions } from "@/lib/taiwan-history-knowledge";
 import type {
   ChatMessage,
   ChatResponse,
   ChatStep,
+  LearningSummary,
   PassageLanguage,
   StudentProfile,
 } from "@/lib/types";
@@ -66,6 +71,10 @@ const uiText: Record<
     passageTimeoutError: string;
     answerLimit: string;
     savedToHistory: string;
+    generateSummary: string;
+    generatingSummary: string;
+    summarySaved: string;
+    summarySaveFailed: string;
   }
 > = {
   en: {
@@ -87,6 +96,10 @@ const uiText: Record<
     passageTimeoutError: "The history passage took too long to generate. Please try again.",
     answerLimit: "Reading check",
     savedToHistory: "Saved to Study History.",
+    generateSummary: "Generate My Learning Summary",
+    generatingSummary: "Generating summary...",
+    summarySaved: "Learning summary saved.",
+    summarySaveFailed: "Summary is shown here, but it could not be saved to Supabase.",
   },
   zh: {
     studentName: "\u5b78\u751f\u540d\u5b57",
@@ -107,6 +120,10 @@ const uiText: Record<
     passageTimeoutError: "\u6b77\u53f2\u6587\u7ae0\u7522\u751f\u82b1\u4e86\u592a\u4e45\u6642\u9593\u3002\u8acb\u518d\u8a66\u4e00\u6b21\u3002",
     answerLimit: "\u95b1\u8b80\u6aa2\u67e5",
     savedToHistory: "\u5df2\u5132\u5b58\u5230\u5b78\u7fd2\u6b77\u53f2\u3002",
+    generateSummary: "產生我的學習摘要",
+    generatingSummary: "摘要產生中...",
+    summarySaved: "學習摘要已儲存。",
+    summarySaveFailed: "摘要已顯示在這裡，但沒有成功儲存到 Supabase。",
   },
 };
 
@@ -161,6 +178,7 @@ type ChatPanelProps = {
 export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: ChatPanelProps) {
   const studentName = studentProfile.display_name;
   const previousLanguageRef = useRef(passageLanguage);
+  const hasGeneratedInitialPassageRef = useRef(false);
   const initialPassageOption =
     taiwanReadingPassageOptions.find((option) => option.id === selectedEvent.id) ??
     taiwanReadingPassageOptions[0];
@@ -172,10 +190,14 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
   const [answer, setAnswer] = useState("");
   const [step, setStep] = useState<ChatStep>("mainIdea");
   const [historyAnswerCount, setHistoryAnswerCount] = useState(0);
+  const [answeredItems, setAnsweredItems] = useState<string[]>([]);
   const [maxHistoryAnswers, setMaxHistoryAnswers] = useState(5);
   const [isSavedToHistory, setIsSavedToHistory] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGeneratingPassage, setIsGeneratingPassage] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [learningSummary, setLearningSummary] = useState<LearningSummary | null>(null);
+  const [summaryStatus, setSummaryStatus] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -184,6 +206,7 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
     },
   ]);
   const text = uiText[passageLanguage];
+  const selectedEventTitle = getLocalizedHistoryEventTitle(selectedEvent, passageLanguage);
 
   function getSelectedPassageTitle() {
     const selectedPassage = taiwanReadingPassageOptions.find(
@@ -191,7 +214,7 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
     );
 
     if (!selectedPassage) {
-      return selectedEvent.title;
+      return selectedEventTitle;
     }
 
     return passageLanguage === "zh" ? selectedPassage.titleZh : selectedPassage.titleEn;
@@ -248,7 +271,7 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
       .insert({
         student_id: studentProfile.id,
         title: getSelectedPassageTitle(),
-        topic: selectedEvent.title,
+        topic: selectedEventTitle,
         passage,
         passage_language: passageLanguage,
         reading_check_count: 0,
@@ -277,6 +300,69 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
     });
   }
 
+  async function saveLearningSummary(summary: LearningSummary) {
+    if (!learningSessionId) {
+      return false;
+    }
+
+    const supabase = getSupabaseBrowserClient();
+    const { data: existingSummary } = await supabase
+      .from("learning_summaries")
+      .select("id")
+      .eq("student_id", studentProfile.id)
+      .eq("session_id", learningSessionId)
+      .maybeSingle<{ id: string }>();
+
+    const summaryPayload = {
+      student_id: studentProfile.id,
+      session_id: learningSessionId,
+      practiced_topic: summary.practiced_topic,
+      practiced_skills: summary.practiced_skills,
+      strength: summary.strength,
+      weakness: summary.weakness,
+      next_step: summary.next_step,
+      support_level: summary.support_level,
+      simple_score: summary.simple_score,
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error: summaryError } = existingSummary
+      ? await supabase
+          .from("learning_summaries")
+          .update(summaryPayload)
+          .eq("id", existingSummary.id)
+          .eq("student_id", studentProfile.id)
+      : await supabase.from("learning_summaries").insert(summaryPayload);
+
+    const { error: profileError } = await supabase.from("learning_profiles").upsert({
+      student_id: studentProfile.id,
+      common_weakness: summary.weakness,
+      recently_practiced_skill: summary.practiced_skills.join(", "),
+      support_level: summary.support_level.toLowerCase(),
+      updated_at: new Date().toISOString(),
+    });
+
+    return !summaryError && !profileError;
+  }
+
+  async function handleGenerateSummary() {
+    setIsGeneratingSummary(true);
+    setSummaryStatus("");
+
+    // Rule-based feedback keeps the feature explainable for students and teachers.
+    const summary = analyzeLearning(messages, selectedEventTitle);
+    setLearningSummary(summary);
+
+    try {
+      const didSave = await saveLearningSummary(summary);
+      setSummaryStatus(didSave ? text.summarySaved : text.summarySaveFailed);
+    } catch {
+      setSummaryStatus(text.summarySaveFailed);
+    } finally {
+      setIsGeneratingSummary(false);
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -286,7 +372,13 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
       return;
     }
 
+    const nextAnsweredItems = mergeAnsweredItems(
+      answeredItems,
+      extractAnsweredItems(trimmedAnswer, passage),
+    );
+
     setMessages((current) => [...current, { role: "user", content: trimmedAnswer }]);
+    setAnsweredItems(nextAnsweredItems);
     setAnswer("");
     setErrorMessage("");
     setIsLoading(true);
@@ -308,9 +400,10 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
           passageLanguage,
           learningSessionId: currentLearningSessionId,
           historyAnswerCount,
-          selectedTopic: selectedEvent.title,
+          selectedTopic: selectedEventTitle,
           currentRole: selectedEvent.role,
-          history: messages.slice(-8),
+          history: messages.slice(-10),
+          answeredItems: nextAnsweredItems,
         }),
       });
       window.clearTimeout(timeoutId);
@@ -364,11 +457,15 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
     setStep("mainIdea");
     setHistoryAnswerCount(0);
     setMaxHistoryAnswers(5);
+    setAnsweredItems([]);
     setLearningSessionId(null);
     setIsSavedToHistory(false);
     setAnswer("");
     setErrorMessage("");
     setIsLoading(false);
+    setIsGeneratingSummary(false);
+    setLearningSummary(null);
+    setSummaryStatus("");
     setMessages([{ role: "assistant", content: starterPrompts[nextLanguage] }]);
   }
 
@@ -414,25 +511,29 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
   }, [text.passageTimeoutError]);
 
   useEffect(() => {
-    if (previousLanguageRef.current === passageLanguage) {
-      return;
-    }
+    const languageChanged = previousLanguageRef.current !== passageLanguage;
 
     previousLanguageRef.current = passageLanguage;
 
-    const selectedPassage = taiwanReadingPassageOptions.find(
-      (option) => option.id === selectedPassageId,
-    );
+    if (languageChanged) {
+      const selectedPassage = taiwanReadingPassageOptions.find(
+        (option) => option.id === selectedPassageId,
+      );
 
-    setPassage(
-      selectedPassage
-        ? passageLanguage === "zh"
-          ? selectedPassage.passageZh
-          : selectedPassage.passageEn
-        : defaultPassages[passageLanguage],
-    );
-    resetPracticeState(passageLanguage);
-    void generatePassageForOption(selectedPassageId, passageLanguage);
+      setPassage(
+        selectedPassage
+          ? passageLanguage === "zh"
+            ? selectedPassage.passageZh
+            : selectedPassage.passageEn
+          : defaultPassages[passageLanguage],
+      );
+      resetPracticeState(passageLanguage);
+    }
+
+    if (!hasGeneratedInitialPassageRef.current || languageChanged) {
+      hasGeneratedInitialPassageRef.current = true;
+      void generatePassageForOption(selectedPassageId, passageLanguage);
+    }
   }, [generatePassageForOption, passageLanguage, selectedPassageId]);
 
   return (
@@ -444,7 +545,7 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
               {text.readingPassage}
             </p>
             <h2 className="mt-1 text-lg font-bold text-slate-950">
-              {selectedEvent.title}
+              {selectedEvent.year} · {selectedEventTitle}
             </h2>
           </div>
         </div>
@@ -458,7 +559,7 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
             value={passage}
             onChange={(event) => setPassage(event.target.value)}
             rows={22}
-            className="min-h-[540px] w-full resize-y rounded-[1rem] border border-slate-200 bg-white px-5 py-5 text-base leading-8 text-slate-900 shadow-inner shadow-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
+            className="min-h-[540px] w-full resize-y rounded-[1rem] border border-slate-200 bg-white px-5 py-5 text-lg leading-9 text-slate-900 shadow-inner shadow-slate-100 outline-none transition placeholder:text-slate-400 focus:border-sky-400 focus:ring-4 focus:ring-sky-100"
             placeholder={isGeneratingPassage ? text.generating : text.passagePlaceholder}
           />
         </div>
@@ -551,7 +652,31 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
             {isLoading ? text.sending : text.send}
           </button>
         </form>
+
+        {step === "completed" ? (
+          <div className="border-t border-slate-100 bg-white p-4">
+            <button
+              type="button"
+              onClick={handleGenerateSummary}
+              disabled={isGeneratingSummary}
+              className="w-full rounded-full bg-sky-700 px-5 py-3 text-sm font-bold text-white shadow-sm shadow-sky-200 transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {isGeneratingSummary ? text.generatingSummary : text.generateSummary}
+            </button>
+            {summaryStatus ? (
+              <p className="mt-2 text-center text-xs font-semibold text-emerald-700">
+                {summaryStatus}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
       </div>
+
+      {learningSummary ? (
+        <div className="xl:col-span-2">
+          <LearningSummaryCard summary={learningSummary} language={passageLanguage} />
+        </div>
+      ) : null}
     </section>
   );
 }
