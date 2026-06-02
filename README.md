@@ -2,6 +2,8 @@
 
 AI Study Buddy is a Next.js, TypeScript, and Tailwind starter app with App Router pages for a study assistant chat and saved study history.
 
+# 組員
+何書維114524030 , 洪旭泰113921006 , 張祐豪113524013
 ## Tech Stack
 
 - Next.js 16 App Router

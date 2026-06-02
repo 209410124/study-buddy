@@ -3,7 +3,14 @@ export type ChatMessage = {
   content: string;
 };
 
-export type ChatStep = "mainIdea" | "evidence" | "reasoning" | "reflection" | "completed";
+export type ChatStep =
+  | "mainIdea"
+  | "evidence"
+  | "reasoning"
+  | "organize_reasoning"
+  | "connect_location_to_reason"
+  | "reflection"
+  | "completed";
 
 export type PassageLanguage = "en" | "zh";
 

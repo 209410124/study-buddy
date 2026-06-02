@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { LearningSummaryCard } from "@/components/learning-summary-card";
 import { StudyBuddyAvatar } from "@/components/study-buddy-avatar";
@@ -38,6 +39,8 @@ const stepLabels: Record<PassageLanguage, Record<ChatStep, string>> = {
     mainIdea: "Main idea",
     evidence: "Evidence",
     reasoning: "Reasoning",
+    organize_reasoning: "Organize idea",
+    connect_location_to_reason: "Connect paragraph",
     reflection: "Reflection",
     completed: "Completed",
   },
@@ -45,6 +48,8 @@ const stepLabels: Record<PassageLanguage, Record<ChatStep, string>> = {
     mainIdea: "\u4e3b\u65e8",
     evidence: "\u8b49\u64da",
     reasoning: "\u63a8\u8ad6",
+    organize_reasoning: "\u6574\u7406\u60f3\u6cd5",
+    connect_location_to_reason: "\u9023\u7d50\u6bb5\u843d",
     reflection: "\u53cd\u601d",
     completed: "\u5b8c\u6210",
   },
@@ -129,22 +134,30 @@ const uiText: Record<
 
 const fallbackReplies: Record<PassageLanguage, Record<ChatStep, string>> = {
   en: {
-    mainIdea: "Nice start. Which detail from the passage gives evidence for your answer?",
+    mainIdea: "Nice start. You have the direction. How would you say that idea in one complete sentence?",
     evidence:
-      "Good evidence. How does that detail support the main idea?",
+      "Good clue. Let's connect it to your idea: why would that detail matter to people's lives?",
     reasoning:
       "Nice thinking. What does this passage make you wonder about life in Taiwan from 1895 to 1945?",
+    organize_reasoning:
+      "Yes, your idea makes sense. Try putting it into one clear sentence, then choose which reason feels most important.",
+    connect_location_to_reason:
+      "Good, you found a useful place. What is that part mostly saying, in your own words?",
     reflection:
       "That makes sense. Which idea from the passage feels most important to remember?",
     completed:
       "Great work. This practice is complete and saved for review.",
   },
   zh: {
-    mainIdea: "\u5f88\u597d\u7684\u958b\u59cb\u3002\u6587\u7ae0\u4e2d\u54ea\u4e00\u500b\u7d30\u7bc0\u53ef\u4ee5\u652f\u6301\u4f60\u7684\u7b54\u6848\uff1f",
+    mainIdea: "\u5f88\u597d\u7684\u958b\u59cb\u3002\u4f60\u5df2\u7d93\u6293\u5230\u65b9\u5411\u4e86\uff0c\u53ef\u4ee5\u8a66\u8457\u628a\u5b83\u6574\u7406\u6210\u4e00\u53e5\u5b8c\u6574\u7684\u8a71\u55ce\uff1f",
     evidence:
-      "\u8b49\u64da\u627e\u5f97\u4e0d\u932f\u3002\u73fe\u5728\u8acb\u8aaa\u660e\u4f60\u7684\u63a8\u8ad6\uff1a\u9019\u500b\u7d30\u7bc0\u5982\u4f55\u652f\u6301\u4e3b\u65e8\uff1f",
+      "\u7dda\u7d22\u627e\u5f97\u4e0d\u932f\u3002\u6211\u5011\u628a\u5b83\u63a5\u56de\u4f60\u7684\u60f3\u6cd5\uff1a\u9019\u500b\u7d30\u7bc0\u5c0d\u7576\u6642\u4eba\u5011\u7684\u751f\u6d3b\u6703\u6709\u4ec0\u9ebc\u5f71\u97ff\uff1f",
     reasoning:
       "\u60f3\u5f97\u4e0d\u932f\u3002\u9019\u7bc7\u6587\u7ae0\u8b93\u4f60\u5c0d1895\u52301945\u5e74\u7684\u53f0\u7063\u60f3\u5230\u4ec0\u9ebc\uff1f",
+    organize_reasoning:
+      "\u5c0d\uff0c\u4f60\u7684\u60f3\u6cd5\u662f\u5408\u7406\u7684\u3002\u53ef\u4ee5\u8a66\u8457\u6574\u7406\u6210\u4e00\u53e5\u5b8c\u6574\u7684\u8a71\uff0c\u518d\u60f3\u60f3\u54ea\u4e00\u500b\u539f\u56e0\u5f71\u97ff\u6700\u5927\uff1f",
+    connect_location_to_reason:
+      "\u597d\uff0c\u4f60\u5df2\u7d93\u627e\u5230\u53ef\u80fd\u76f8\u95dc\u7684\u4f4d\u7f6e\u4e86\u3002\u90a3\u4e00\u90e8\u5206\u5927\u6982\u5728\u8aaa\u4ec0\u9ebc\uff1f\u7528\u81ea\u5df1\u7684\u8a71\u8aaa\u8aaa\u770b\u3002",
     reflection:
       "\u9019\u6a23\u60f3\u5f88\u6709\u9053\u7406\u3002\u6587\u7ae0\u4e2d\u54ea\u500b\u60f3\u6cd5\u6700\u503c\u5f97\u8a18\u4f4f\uff1f",
     completed:
@@ -300,8 +313,8 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
     });
   }
 
-  async function saveLearningSummary(summary: LearningSummary) {
-    if (!learningSessionId) {
+  async function saveLearningSummary(summary: LearningSummary, sessionId = learningSessionId) {
+    if (!sessionId) {
       return false;
     }
 
@@ -310,12 +323,12 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
       .from("learning_summaries")
       .select("id")
       .eq("student_id", studentProfile.id)
-      .eq("session_id", learningSessionId)
+      .eq("session_id", sessionId)
       .maybeSingle<{ id: string }>();
 
     const summaryPayload = {
       student_id: studentProfile.id,
-      session_id: learningSessionId,
+      session_id: sessionId,
       practiced_topic: summary.practiced_topic,
       practiced_skills: summary.practiced_skills,
       strength: summary.strength,
@@ -435,6 +448,12 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
           finalMessages,
           data.historyAnswerCount,
         );
+        const summary = analyzeLearning(finalMessages, selectedEventTitle);
+        setLearningSummary(summary);
+
+        const didSaveSummary = await saveLearningSummary(summary, currentLearningSessionId);
+        setSummaryStatus(didSaveSummary ? text.summarySaved : text.summarySaveFailed);
+
         await updateLearningProfile(stepLabels[passageLanguage][data.nextStep]);
       }
     } catch {
@@ -655,14 +674,22 @@ export function ChatPanel({ studentProfile, passageLanguage, selectedEvent }: Ch
 
         {step === "completed" ? (
           <div className="border-t border-slate-100 bg-white p-4">
-            <button
-              type="button"
-              onClick={handleGenerateSummary}
-              disabled={isGeneratingSummary}
-              className="w-full rounded-full bg-sky-700 px-5 py-3 text-sm font-bold text-white shadow-sm shadow-sky-200 transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
-            >
-              {isGeneratingSummary ? text.generatingSummary : text.generateSummary}
-            </button>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <Link
+                href={`/match?topic=${encodeURIComponent(selectedEvent.id)}`}
+                className="rounded-full bg-emerald-600 px-5 py-3 text-center text-sm font-bold text-white shadow-sm shadow-emerald-200 transition hover:bg-emerald-700"
+              >
+                Practice Match Game
+              </Link>
+              <button
+                type="button"
+                onClick={handleGenerateSummary}
+                disabled={isGeneratingSummary}
+                className="rounded-full bg-sky-700 px-5 py-3 text-sm font-bold text-white shadow-sm shadow-sky-200 transition hover:bg-sky-800 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isGeneratingSummary ? text.generatingSummary : text.generateSummary}
+              </button>
+            </div>
             {summaryStatus ? (
               <p className="mt-2 text-center text-xs font-semibold text-emerald-700">
                 {summaryStatus}
