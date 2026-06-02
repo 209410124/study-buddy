@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useLanguage } from "@/components/language-provider";
 import { LearningSummaryCard } from "@/components/learning-summary-card";
 import { parseLearningSummary } from "@/lib/analyze-learning";
@@ -123,7 +124,16 @@ export function HistoryList({
   latestSessions,
 }: HistoryListProps) {
   const { language } = useLanguage();
+  const [showAllSessions, setShowAllSessions] = useState(false);
   const t = text[language];
+  const visibleSessions = showAllSessions ? latestSessions : latestSessions.slice(0, 5);
+  const toggleHistoryLabel = showAllSessions
+    ? language === "zh"
+      ? "收合"
+      : "Show less"
+    : language === "zh"
+      ? "顯示更多"
+      : "Show more";
   const commonWeakness = learningProfile?.common_weakness ?? t.commonWeaknessFallback;
   const recentlyPracticedSkill =
     learningProfile?.recently_practiced_skill ?? t.recentlyPracticedFallback;
@@ -226,8 +236,8 @@ export function HistoryList({
           {t.historyDescription}
         </p>
         <div className="mt-4 grid gap-3">
-          {latestSessions.length > 0 ? (
-            latestSessions.map((session) => (
+          {visibleSessions.length > 0 ? (
+            visibleSessions.map((session) => (
               <Link
                 key={session.id}
                 href={`/history/${session.id}`}
@@ -265,6 +275,18 @@ export function HistoryList({
             </article>
           )}
         </div>
+        {latestSessions.length > 5 ? (
+          <div className="mt-5 flex justify-center">
+            <button
+              type="button"
+              aria-expanded={showAllSessions}
+              onClick={() => setShowAllSessions((current) => !current)}
+              className="rounded-full border border-sky-200 bg-white px-5 py-2 text-sm font-semibold text-sky-800 shadow-sm transition hover:border-sky-300 hover:bg-sky-50"
+            >
+              {toggleHistoryLabel}
+            </button>
+          </div>
+        ) : null}
       </div>
     </section>
   );

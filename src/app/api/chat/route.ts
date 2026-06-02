@@ -190,7 +190,10 @@ function getSystemPrompt(passageLanguage: PassageLanguage) {
     "Your job is to understand the student's latest answer semantically, compare it with the passage, decide the most helpful next teaching move, and write the final reply.",
     "Do not rely on keyword matching. Treat paraphrases, partial answers, uncertainty, and casual messages by meaning.",
     "Keep replies suitable for junior high school students: short, warm, natural, and not too academic.",
-    "Usually use one acknowledgement, one explanation or clearer restatement, and one simple follow-up question.",
+    "Usually use one acknowledgement, one explanation or clearer restatement, and one simple follow-up question, but vary the shape of the reply based on the recent chat.",
+    "Read the recent chat history before writing ai_reply. Do not repeat the same opening, sentence pattern, praise phrase, or follow-up question used in the last few assistant messages.",
+    "Avoid formulaic frames such as 'You already found ... these clues' followed by 'use your own words' every time. If the student's answer is clear, move the conversation forward with a fresh, specific coaching move.",
+    "For Chinese replies, sound like a patient teacher talking naturally: concise, varied, and specific to the student's exact words.",
     "Any follow-up question must be answerable from the passage unless the student is only chatting or asking to stop.",
     "When the student gives useful evidence, weave the evidence into your praise naturally. Do not prepend a fixed label.",
     "Do not give the student new answer content. Never introduce historical reasons, examples, terms, or details that the student has not already named.",
@@ -259,6 +262,7 @@ function getUserPrompt(params: {
     `Latest student message:\n${params.message}`,
     "",
     "Return one JSON object. Decide evaluation_label, detected_evidence, next_step, and ai_reply together.",
+    "Before writing ai_reply, compare it with the assistant messages in Recent chat history and make sure it does not reuse the same wording or structure.",
     "If the latest message is a reasonable paraphrase, use evaluation_label reasonable_paraphrase and next_step organize_reasoning.",
     "If the latest message gives only paragraph or line location, use evaluation_label location_given and next_step connect_location_to_reason.",
     "Do not ask for exact sentences after reasonable_paraphrase or location_given.",
@@ -301,37 +305,11 @@ function parseTutorDecision(data: OpenAIChatCompletionBody): TutorDecision | nul
   }
 }
 
-function getReasonableParaphraseReply(decision: TutorDecision, passageLanguage: PassageLanguage) {
-  if (passageLanguage === "zh") {
-    const evidenceItems = decision.detected_evidence.slice(0, 2);
-    const evidence = evidenceItems.join("、");
-
-    return evidence
-      ? `對，你已經抓到「${evidence}」這些線索了。可以先用你的話整理：這些事情讓他們的生活受到影響。接下來請回到文章，再找一個你覺得也重要的線索，用自己的話說就好。`
-      : "對，你已經抓到方向了。先不要急著寫完整答案，請回到文章找一個明確線索，再用自己的話說它和你的想法有什麼關係。";
-  }
-
-  const evidence = decision.detected_evidence.slice(0, 2).join(" and ");
-
-  return evidence
-    ? `Yes, you found useful clues: ${evidence}. Let's keep using your own words: those clues affected people's lives. Now look back at the passage and choose one more clue that seems important.`
-    : "Yes, you caught the direction. Before we make a full answer, look back at the passage and choose one clear clue in your own words.";
-}
-
-function getLocationGivenReply(decision: TutorDecision, passageLanguage: PassageLanguage) {
-  if (passageLanguage === "zh") {
-    return "好，你已經找到可能相關的位置了。先不要急著抄原句，也不用我直接告訴你答案。請看那幾段，用自己的話說出一個你看到的原因就好。";
-  }
-
-  return "Good, you found a likely place in the passage. Do not worry about copying the exact sentence. Read that part and tell me one reason you notice in your own words.";
-}
-
-function normalizeTutorDecision(decision: TutorDecision, passageLanguage: PassageLanguage): TutorDecision {
+function normalizeTutorDecision(decision: TutorDecision): TutorDecision {
   if (decision.evaluation_label === "reasonable_paraphrase") {
     return {
       ...decision,
       next_step: "organize_reasoning",
-      ai_reply: getReasonableParaphraseReply(decision, passageLanguage),
     };
   }
 
@@ -339,7 +317,6 @@ function normalizeTutorDecision(decision: TutorDecision, passageLanguage: Passag
     return {
       ...decision,
       next_step: "connect_location_to_reason",
-      ai_reply: getLocationGivenReply(decision, passageLanguage),
     };
   }
 
@@ -492,7 +469,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const decision = normalizeTutorDecision(parsedDecision, passageLanguage);
+  const decision = normalizeTutorDecision(parsedDecision);
   const countsAsHistoryAnswer = shouldCountAsHistoryAnswer(decision, step);
   const nextHistoryAnswerCount = countsAsHistoryAnswer
     ? Math.min(historyAnswerCount + 1, maxHistoryAnswers)

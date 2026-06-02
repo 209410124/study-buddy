@@ -59,8 +59,7 @@ export default async function HistoryPage() {
         )
         .eq("student_id", user.id)
         .not("completed_at", "is", null)
-        .order("completed_at", { ascending: false })
-        .limit(10),
+        .order("completed_at", { ascending: false }),
     ]);
 
   const sessionIds = (sessions ?? []).map((session) => session.id);
